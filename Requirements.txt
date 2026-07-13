@@ -6,3 +6,4 @@ scikit-learn==1.7.1
 nltk==3.9.1
 joblib==1.5.1
 keras==3.11.3
+pickle
