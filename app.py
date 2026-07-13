@@ -147,29 +147,268 @@ def predict_sms(message):
     probability = model.predict(sequence, verbose=0)[0][0]
 
     if probability > 0.5:
-        return "🚫 Spam", probability
+        return "Spam", probability
     else:
-        return "✅ Ham", probability
+        return "Ham", probability
 
 # Train only once
 if not os.path.exists(MODEL):
     train_model()
 
-# ---------------- STREAMLIT UI ---------------- #
+# ================================================== #
+#                  STREAMLIT UI                       #
+# ================================================== #
 
-st.title("📩 SMS Spam Detection using Simple RNN")
+st.set_page_config(
+    page_title="SMS Spam Detector",
+    page_icon="✉️",
+    layout="centered",
+)
 
-st.write("### Many-to-One RNN Example")
+# ---------------- CUSTOM STYLING ---------------- #
+# Palette: warm ivory background, deep teal + burnt terracotta accents
+# (deliberately avoiding the usual blue/purple gradient look)
 
-message = st.text_area("Enter SMS Message")
+st.markdown(
+    """
+    <style>
+    :root {
+        --bg-color:       #FBF6EF;   /* warm ivory */
+        --card-color:     #FFFFFF;
+        --teal:           #1F5C57;   /* deep teal - primary */
+        --teal-dark:      #143E3B;
+        --terracotta:     #C9663B;   /* burnt terracotta - accent */
+        --terracotta-dark:#A64F2A;
+        --gold:           #D9A441;   /* muted gold - highlight */
+        --text-dark:      #2E2A26;
+        --text-muted:     #6B645C;
+        --border-soft:    #E6DFD3;
+    }
 
-if st.button("Predict"):
+    /* Overall app background */
+    .stApp {
+        background-color: var(--bg-color);
+    }
 
+    /* Hide default Streamlit chrome for a cleaner board look */
+    header[data-testid="stHeader"] {
+        background: transparent;
+    }
+
+    /* Main title block */
+    .app-title-wrap {
+        text-align: center;
+        padding: 1.6rem 1rem 1rem 1rem;
+        margin-bottom: 1.2rem;
+        background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+        border-radius: 18px;
+        box-shadow: 0 6px 18px rgba(20, 62, 59, 0.25);
+    }
+    .app-title-wrap h1 {
+        color: #FBF6EF !important;
+        font-size: 2.1rem;
+        font-weight: 800;
+        margin-bottom: 0.3rem;
+        letter-spacing: 0.3px;
+    }
+    .app-title-wrap p {
+        color: #E3D9C6 !important;
+        font-size: 1rem;
+        margin: 0;
+        font-style: italic;
+    }
+
+    /* Card container for the input section */
+    .board-card {
+        background-color: var(--card-color);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 1.8rem 1.8rem 1.4rem 1.8rem;
+        box-shadow: 0 4px 14px rgba(46, 42, 38, 0.06);
+        margin-bottom: 1.4rem;
+    }
+
+    .board-card h3 {
+        color: var(--teal-dark);
+        text-align: center;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    /* Text area styling */
+    .stTextArea textarea {
+        background-color: #FDFBF7 !important;
+        border: 2px solid var(--border-soft) !important;
+        border-radius: 12px !important;
+        color: var(--text-dark) !important;
+        font-size: 1rem !important;
+        padding: 0.8rem !important;
+    }
+    .stTextArea textarea:focus {
+        border-color: var(--terracotta) !important;
+        box-shadow: 0 0 0 2px rgba(201, 102, 59, 0.15) !important;
+    }
+    .stTextArea label {
+        color: var(--teal-dark) !important;
+        font-weight: 600 !important;
+        text-align: center;
+    }
+
+    /* Button styling */
+    div.stButton {
+        display: flex;
+        justify-content: center;
+    }
+    div.stButton > button {
+        background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-dark) 100%);
+        color: #FFF8F0;
+        border: none;
+        border-radius: 30px;
+        padding: 0.65rem 2.6rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        box-shadow: 0 4px 12px rgba(166, 79, 42, 0.35);
+        transition: all 0.2s ease-in-out;
+        margin-top: 0.4rem;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(166, 79, 42, 0.45);
+        background: linear-gradient(135deg, var(--terracotta-dark) 0%, var(--terracotta) 100%);
+        color: #FFFFFF;
+    }
+    div.stButton > button:active {
+        transform: translateY(0px);
+    }
+
+    /* Result card - Spam */
+    .result-spam {
+        background: linear-gradient(135deg, #F6D9CC 0%, #F0C2AC 100%);
+        border: 2px solid var(--terracotta);
+        border-radius: 16px;
+        padding: 1.3rem;
+        text-align: center;
+        margin-top: 1rem;
+        box-shadow: 0 4px 14px rgba(166, 79, 42, 0.18);
+    }
+    .result-spam h2 {
+        color: var(--terracotta-dark);
+        margin-bottom: 0.3rem;
+        font-size: 1.6rem;
+    }
+
+    /* Result card - Ham */
+    .result-ham {
+        background: linear-gradient(135deg, #DCEAE3 0%, #C6DED3 100%);
+        border: 2px solid var(--teal);
+        border-radius: 16px;
+        padding: 1.3rem;
+        text-align: center;
+        margin-top: 1rem;
+        box-shadow: 0 4px 14px rgba(31, 92, 87, 0.18);
+    }
+    .result-ham h2 {
+        color: var(--teal-dark);
+        margin-bottom: 0.3rem;
+        font-size: 1.6rem;
+    }
+
+    .result-confidence {
+        color: var(--text-muted);
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .result-confidence span {
+        color: var(--gold);
+        font-weight: 800;
+    }
+
+    /* Warning box override */
+    div[data-testid="stAlert"] {
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    /* Footer */
+    .app-footer {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-soft);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ---------------- HEADER ---------------- #
+
+st.markdown(
+    """
+    <div class="app-title-wrap">
+        <h1>✉️ SMS Spam Detector</h1>
+        <p>Powered by a Simple RNN &nbsp;•&nbsp; Many-to-One Sequence Classification</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ---------------- INPUT CARD ---------------- #
+
+st.markdown('<div class="board-card">', unsafe_allow_html=True)
+st.markdown("### 🔍 Check a Message", unsafe_allow_html=True)
+
+message = st.text_area(
+    "Enter the SMS message you'd like to analyze",
+    height=130,
+    placeholder="e.g. Congratulations! You've won a free prize, click here to claim now...",
+)
+
+predict_clicked = st.button("Analyze Message")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------------- RESULT ---------------- #
+
+if predict_clicked:
     if message.strip() == "":
-        st.warning("Please enter a message.")
+        st.warning("⚠️ Please enter a message before analyzing.")
     else:
         prediction, probability = predict_sms(message)
+        confidence = round(probability * 100, 2) if prediction == "Spam" else round((1 - probability) * 100, 2)
 
-        st.success(prediction)
+        if prediction == "Spam":
+            st.markdown(
+                f"""
+                <div class="result-spam">
+                    <h2>🚫 Spam Detected</h2>
+                    <p class="result-confidence">Confidence: <span>{confidence}%</span></p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f"""
+                <div class="result-ham">
+                    <h2>✅ Looks Safe (Ham)</h2>
+                    <p class="result-confidence">Confidence: <span>{confidence}%</span></p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        st.write("Confidence:", round(probability * 100, 2), "%")
+# ---------------- FOOTER ---------------- #
+
+st.markdown(
+    """
+    <div class="app-footer">
+        Built with Streamlit &amp; TensorFlow · Simple RNN Architecture
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
