@@ -38,23 +38,18 @@ def train_model():
 
     print("Training model...")
 
-    # Load Dataset
     df = pd.read_csv("spam.csv", encoding="latin-1")
 
-    # Keep only required columns
     df = df[["v1", "v2"]]
     df.columns = ["label", "text"]
 
     print(df.head())
     print(df["label"].value_counts())
 
-    # Convert labels to numbers
     df["label"] = df["label"].map({"ham": 0, "spam": 1})
 
-    # Clean text
     df["text"] = df["text"].apply(clean_text)
 
-    # Tokenizer
     tokenizer = Tokenizer(num_words=MAX_WORDS, oov_token="<OOV>")
     tokenizer.fit_on_texts(df["text"])
 
@@ -66,16 +61,13 @@ def train_model():
     print("X Shape:", X.shape)
     print("Y Shape:", Y.shape)
 
-    # Save tokenizer
     with open(TOKENIZER, "wb") as f:
         pickle.dump(tokenizer, f)
 
-    # Train Test Split
     x_train, x_test, y_train, y_test = train_test_split(
         X, Y, test_size=0.2, random_state=42
     )
 
-    # Build Model
     model = Sequential()
 
     model.add(
@@ -87,9 +79,7 @@ def train_model():
     )
 
     model.add(SimpleRNN(128))
-
     model.add(Dense(32, activation="relu"))
-
     model.add(Dense(1, activation="sigmoid"))
 
     model.compile(
@@ -100,7 +90,6 @@ def train_model():
 
     model.summary()
 
-    # Train Model
     model.fit(
         x_train,
         y_train,
@@ -110,10 +99,8 @@ def train_model():
         verbose=1
     )
 
-    # Save Model
     model.save(MODEL)
 
-    # Evaluate
     loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
 
     print("\nAccuracy:", accuracy)
@@ -141,7 +128,6 @@ def predict_sms(message):
     message = clean_text(message)
 
     sequence = tokenizer.texts_to_sequences([message])
-
     sequence = pad_sequences(sequence, maxlen=MAX_LEN, padding="post")
 
     probability = model.predict(sequence, verbose=0)[0][0]
@@ -167,46 +153,73 @@ st.set_page_config(
 
 # ---------------- CUSTOM STYLING ---------------- #
 # Palette: warm ivory background, deep teal + burnt terracotta accents
-# (deliberately avoiding the usual blue/purple gradient look)
 
 st.markdown(
     """
     <style>
     :root {
-        --bg-color:       #FBF6EF;   /* warm ivory */
+        --bg-color:       #FBF6EF;
         --card-color:     #FFFFFF;
-        --teal:           #1F5C57;   /* deep teal - primary */
+        --teal:           #1F5C57;
         --teal-dark:      #143E3B;
-        --terracotta:     #C9663B;   /* burnt terracotta - accent */
+        --terracotta:     #C9663B;
         --terracotta-dark:#A64F2A;
-        --gold:           #D9A441;   /* muted gold - highlight */
+        --gold:           #D9A441;
         --text-dark:      #2E2A26;
         --text-muted:     #6B645C;
         --border-soft:    #E6DFD3;
     }
 
-    /* Overall app background */
-    .stApp {
-        background-color: var(--bg-color);
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-18px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+        0%   { opacity: 0; transform: scale(0.85); }
+        70%  { opacity: 1; transform: scale(1.03); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes borderGlow {
+        0%   { box-shadow: 0 0 6px rgba(201, 102, 59, 0.25), 0 4px 14px rgba(46, 42, 38, 0.06); border-color: var(--terracotta); }
+        50%  { box-shadow: 0 0 18px rgba(31, 92, 87, 0.35), 0 4px 14px rgba(46, 42, 38, 0.06); border-color: var(--teal); }
+        100% { box-shadow: 0 0 6px rgba(201, 102, 59, 0.25), 0 4px 14px rgba(46, 42, 38, 0.06); border-color: var(--terracotta); }
+    }
+    @keyframes underlineGrow {
+        from { width: 0%; }
+        to   { width: 70%; }
+    }
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-4px); }
+        40% { transform: translateX(4px); }
+        60% { transform: translateX(-3px); }
+        80% { transform: translateX(3px); }
     }
 
-    /* Hide default Streamlit chrome for a cleaner board look */
+    .stApp {
+        background-color: var(--bg-color) !important;
+    }
+
     header[data-testid="stHeader"] {
         background: transparent;
     }
 
-    /* Main title block */
     .app-title-wrap {
         text-align: center;
         padding: 1.6rem 1rem 1rem 1rem;
-        margin-bottom: 1.2rem;
+        margin-bottom: 1.4rem;
         background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
         border-radius: 18px;
         box-shadow: 0 6px 18px rgba(20, 62, 59, 0.25);
+        animation: fadeInDown 0.7s ease-out;
     }
     .app-title-wrap h1 {
         color: #FBF6EF !important;
-        font-size: 2.1rem;
+        font-size: 2.2rem;
         font-weight: 800;
         margin-bottom: 0.3rem;
         letter-spacing: 0.3px;
@@ -218,43 +231,61 @@ st.markdown(
         font-style: italic;
     }
 
-    /* Card container for the input section */
-    .board-card {
-        background-color: var(--card-color);
-        border: 1px solid var(--border-soft);
-        border-radius: 16px;
+    /* ---- Card built with a REAL Streamlit container (st.container(key=...)) ---- */
+    /* Targets the wrapper Streamlit generates for a keyed container, so styling   */
+    /* actually wraps the widgets inside it instead of floating as an empty div.   */
+    div[class*="st-key-board_card"] {
+        background-color: var(--card-color) !important;
+        border: 3px solid var(--terracotta);
+        border-radius: 20px;
         padding: 1.8rem 1.8rem 1.4rem 1.8rem;
-        box-shadow: 0 4px 14px rgba(46, 42, 38, 0.06);
         margin-bottom: 1.4rem;
+        animation: fadeInUp 0.6s ease-out, borderGlow 3.5s ease-in-out infinite;
     }
 
-    .board-card h3 {
-        color: var(--teal-dark);
+    .card-heading {
         text-align: center;
-        font-weight: 700;
-        margin-bottom: 1rem;
+        margin-bottom: 1.1rem;
+    }
+    .card-heading h3 {
+        display: inline-block;
+        color: var(--teal-dark) !important;
+        font-weight: 900 !important;
+        font-size: 1.9rem !important;
+        letter-spacing: 0.4px;
+        margin: 0 !important;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .card-heading .underline {
+        display: block;
+        height: 4px;
+        width: 70%;
+        margin: 0.4rem auto 0 auto;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--terracotta), var(--gold), var(--teal));
+        animation: underlineGrow 1s ease-out;
     }
 
-    /* Text area styling */
     .stTextArea textarea {
         background-color: #FDFBF7 !important;
         border: 2px solid var(--border-soft) !important;
         border-radius: 12px !important;
         color: var(--text-dark) !important;
-        font-size: 1rem !important;
+        font-size: 1.05rem !important;
         padding: 0.8rem !important;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
     .stTextArea textarea:focus {
         border-color: var(--terracotta) !important;
-        box-shadow: 0 0 0 2px rgba(201, 102, 59, 0.15) !important;
+        box-shadow: 0 0 0 3px rgba(201, 102, 59, 0.18) !important;
     }
-    .stTextArea label {
+    .stTextArea label p {
         color: var(--teal-dark) !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
+        font-size: 1.02rem !important;
         text-align: center;
     }
 
-    /* Button styling */
     div.stButton {
         display: flex;
         justify-content: center;
@@ -264,74 +295,75 @@ st.markdown(
         color: #FFF8F0;
         border: none;
         border-radius: 30px;
-        padding: 0.65rem 2.6rem;
-        font-size: 1.05rem;
-        font-weight: 700;
+        padding: 0.7rem 2.8rem;
+        font-size: 1.1rem;
+        font-weight: 800;
         letter-spacing: 0.4px;
         box-shadow: 0 4px 12px rgba(166, 79, 42, 0.35);
         transition: all 0.2s ease-in-out;
-        margin-top: 0.4rem;
+        margin-top: 0.6rem;
     }
     div.stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 18px rgba(166, 79, 42, 0.45);
+        transform: translateY(-3px) scale(1.03);
+        box-shadow: 0 10px 22px rgba(166, 79, 42, 0.45);
         background: linear-gradient(135deg, var(--terracotta-dark) 0%, var(--terracotta) 100%);
         color: #FFFFFF;
     }
     div.stButton > button:active {
-        transform: translateY(0px);
+        transform: translateY(0px) scale(0.98);
     }
 
-    /* Result card - Spam */
     .result-spam {
         background: linear-gradient(135deg, #F6D9CC 0%, #F0C2AC 100%);
-        border: 2px solid var(--terracotta);
-        border-radius: 16px;
-        padding: 1.3rem;
+        border: 3px solid var(--terracotta);
+        border-radius: 18px;
+        padding: 1.4rem;
         text-align: center;
         margin-top: 1rem;
-        box-shadow: 0 4px 14px rgba(166, 79, 42, 0.18);
+        box-shadow: 0 6px 18px rgba(166, 79, 42, 0.25);
+        animation: popIn 0.5s ease-out, shake 0.6s ease-in-out 0.5s;
     }
     .result-spam h2 {
         color: var(--terracotta-dark);
         margin-bottom: 0.3rem;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
+        font-weight: 900;
     }
 
-    /* Result card - Ham */
     .result-ham {
         background: linear-gradient(135deg, #DCEAE3 0%, #C6DED3 100%);
-        border: 2px solid var(--teal);
-        border-radius: 16px;
-        padding: 1.3rem;
+        border: 3px solid var(--teal);
+        border-radius: 18px;
+        padding: 1.4rem;
         text-align: center;
         margin-top: 1rem;
-        box-shadow: 0 4px 14px rgba(31, 92, 87, 0.18);
+        box-shadow: 0 6px 18px rgba(31, 92, 87, 0.25);
+        animation: popIn 0.5s ease-out;
     }
     .result-ham h2 {
         color: var(--teal-dark);
         margin-bottom: 0.3rem;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
+        font-weight: 900;
     }
 
     .result-confidence {
         color: var(--text-muted);
-        font-size: 1rem;
-        font-weight: 600;
+        font-size: 1.05rem;
+        font-weight: 700;
     }
 
     .result-confidence span {
         color: var(--gold);
-        font-weight: 800;
+        font-weight: 900;
     }
 
-    /* Warning box override */
     div[data-testid="stAlert"] {
         border-radius: 12px;
         text-align: center;
+        animation: shake 0.5s ease-in-out;
     }
 
-    /* Footer */
     .app-footer {
         text-align: center;
         color: var(--text-muted);
@@ -358,19 +390,29 @@ st.markdown(
 )
 
 # ---------------- INPUT CARD ---------------- #
+# Using a real Streamlit container(key=...) instead of a raw unclosed <div> —
+# this is what actually makes the card render correctly and removes the
+# empty ghost box that used to show up before "Check a Message".
 
-st.markdown('<div class="board-card">', unsafe_allow_html=True)
-st.markdown("### 🔍 Check a Message", unsafe_allow_html=True)
+with st.container(key="board_card"):
 
-message = st.text_area(
-    "Enter the SMS message you'd like to analyze",
-    height=130,
-    placeholder="e.g. Congratulations! You've won a free prize, click here to claim now...",
-)
+    st.markdown(
+        """
+        <div class="card-heading">
+            <h3>🔍 Check a Message</h3>
+            <span class="underline"></span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-predict_clicked = st.button("Analyze Message")
+    message = st.text_area(
+        "Enter the SMS message you'd like to analyze",
+        height=130,
+        placeholder="e.g. Congratulations! You've won a free prize, click here to claim now...",
+    )
 
-st.markdown("</div>", unsafe_allow_html=True)
+    predict_clicked = st.button("Analyze Message")
 
 # ---------------- RESULT ---------------- #
 
