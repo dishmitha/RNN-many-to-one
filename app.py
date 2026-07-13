@@ -444,13 +444,3 @@ if predict_clicked:
                 unsafe_allow_html=True,
             )
 
-# ---------------- FOOTER ---------------- #
-
-st.markdown(
-    """
-    <div class="app-footer">
-        Built with Streamlit &amp; TensorFlow · Simple RNN Architecture
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
